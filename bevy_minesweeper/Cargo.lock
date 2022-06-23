@@ -587,6 +587,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "board_plugin",
+ "log",
 ]
 
 [[package]]
