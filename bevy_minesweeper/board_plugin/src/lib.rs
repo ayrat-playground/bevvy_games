@@ -1,9 +1,12 @@
+use crate::events::*;
 use bevy::log;
 use bevy::prelude::*;
+use bevy::utils::HashMap;
 use bounds::Bounds2;
 use components::Bomb;
 use components::BombNeighbor;
 use components::Coordinates;
+use components::Uncover;
 use resources::tile::Tile;
 use resources::tile_map::TileMap;
 use resources::Board;
@@ -13,11 +16,9 @@ use resources::TileSize;
 
 mod bounds;
 pub mod components;
+mod events;
 pub mod resources;
 mod systems;
-
-#[cfg(feature = "debug")]
-use components::Uncover;
 
 #[cfg(feature = "debug")]
 use bevy_inspector_egui::RegisterInspectable;
@@ -27,7 +28,10 @@ pub struct BoardPlugin;
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(Self::create_board)
-            .add_system(systems::input::input_handling);
+            .add_system(systems::input::input_handling)
+            .add_system(systems::uncover::trigger_event_handler)
+            .add_system(systems::uncover::uncover_tiles)
+            .add_event::<TileTriggerEvent>();
         log::info!("Loaded Board Plugin");
 
         #[cfg(feature = "debug")]
@@ -86,6 +90,9 @@ impl BoardPlugin {
             BoardPosition::Custom(p) => p,
         };
 
+        let mut covered_tiles =
+            HashMap::with_capacity((tile_map.width() * tile_map.height()).into());
+
         commands
             .spawn()
             .insert(Name::new("Board"))
@@ -113,6 +120,8 @@ impl BoardPlugin {
                     Color::GRAY,
                     bomb_image,
                     font,
+                    Color::DARK_GRAY,
+                    &mut covered_tiles,
                 );
             });
 
@@ -123,6 +132,7 @@ impl BoardPlugin {
                 size: board_size,
             },
             tile_size,
+            covered_tiles,
         });
     }
 
@@ -134,6 +144,8 @@ impl BoardPlugin {
         color: Color,
         bomb_image: Handle<Image>,
         font: Handle<Font>,
+        covered_tile_color: Color,
+        covered_tiles: &mut HashMap<Coordinates, Entity>,
     ) {
         // Tiles
         for (y, line) in tile_map.iter().enumerate() {
@@ -190,6 +202,22 @@ impl BoardPlugin {
                 })
                 .insert(Name::new(format!("Tile ({}, {})", x, y)))
                 .insert(coordinates);
+
+                cmd.with_children(|parent| {
+                    let entity = parent
+                        .spawn_bundle(SpriteBundle {
+                            sprite: Sprite {
+                                custom_size: Some(Vec2::splat(size - padding)),
+                                color: covered_tile_color,
+                                ..Default::default()
+                            },
+                            transform: Transform::from_xyz(0., 0., 2.),
+                            ..Default::default()
+                        })
+                        .insert(Name::new("Tile Cover"))
+                        .id();
+                    covered_tiles.insert(coordinates, entity);
+                });
             }
         }
     }
