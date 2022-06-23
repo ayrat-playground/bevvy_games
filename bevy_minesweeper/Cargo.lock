@@ -587,7 +587,6 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "board_plugin",
- "log",
 ]
 
 [[package]]
@@ -903,7 +902,6 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "colored",
- "log",
  "rand",
  "serde",
 ]

@@ -1,3 +1,4 @@
+use bevy::log;
 use bevy::prelude::*;
 use board_plugin::resources::BoardOptions;
 use board_plugin::resources::{BoardAssets, SpriteMaterial};
